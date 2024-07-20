@@ -22,6 +22,8 @@ import logging
 import pathlib
 from typing import Dict, Optional, Sequence, List
 
+from diffusers import StableDiffusionPipeline
+
 import torch
 
 import transformers
@@ -64,6 +66,7 @@ class ModelArguments:
     mm_use_im_patch_token: bool = field(default=True)
     mm_patch_merge_type: Optional[str] = field(default='flat')
     mm_vision_select_feature: Optional[str] = field(default="patch")
+    add_noise: bool = field(default=False)
 
 
 @dataclass
@@ -942,6 +945,10 @@ def train(attn_implementation=None):
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
+
+    if model_args.add_noise:
+        model.pipeline = StableDiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-2-1")
+        model.pipeline.vae = model.pipeline.vae.to(device="cuda", dtype=compute_dtype)
 
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
